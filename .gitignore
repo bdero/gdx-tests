@@ -1,0 +1,24 @@
+bin/
+gen/
+
+*.apk
+*.ap_
+*.dex
+*.class
+
+*.iml
+*.ipr
+*.iws
+.idea/
+
+.classpath
+.project
+proguard/
+
+local.properties
+
+# html
+gwt-unitCache/
+war/
+
+libgdx-*.zip
