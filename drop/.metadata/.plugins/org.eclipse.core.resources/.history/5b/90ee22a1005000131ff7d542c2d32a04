@@ -1,0 +1,177 @@
+package com.cheesekeg.drop;
+
+import java.util.Iterator;
+
+import com.badlogic.gdx.ApplicationListener;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL10;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.TimeUtils;
+
+public class Drop implements ApplicationListener {
+	Texture dropImage;
+	Texture bucketImage;
+	Sound dropSound;
+	Music rainMusic;
+	BitmapFont font;
+	
+	OrthographicCamera camera;
+	SpriteBatch batch;
+	
+	Rectangle bucket;
+	Array<Droplet> raindrops;
+	long lastDropTime;
+	
+	Vector3 touchPos;
+	
+	final int MOVE_SPEED = 200;
+	
+	private class Droplet {
+		public Rectangle rect;
+		float velocity;
+		float acceleration;
+		
+		public Droplet() {
+			rect = new Rectangle(
+					MathUtils.random(-100, camera.viewportWidth - dropImage.getWidth()) + 100,
+					camera.viewportHeight + dropImage.getHeight(),
+					dropImage.getWidth(), dropImage.getHeight());
+			velocity = 0;//MathUtils.random(200, 250);
+			acceleration = MathUtils.random(200, 350);
+		}
+		
+		public void update(float wind) {
+			velocity += acceleration*Gdx.graphics.getDeltaTime();
+			rect.y -= velocity*Gdx.graphics.getDeltaTime();
+			rect.x += wind*acceleration/2*Gdx.graphics.getDeltaTime();
+		}
+	}
+	
+	@Override
+	public void create() {
+		// Load assets
+		dropImage = new Texture(Gdx.files.internal("droplet.png"));
+		bucketImage = new Texture(Gdx.files.internal("bucket.png"));
+		dropSound = Gdx.audio.newSound(Gdx.files.internal("drop.wav"));
+		rainMusic = Gdx.audio.newMusic(Gdx.files.internal("rain.mp3"));
+		
+		// Start looping music
+		rainMusic.setLooping(true);
+		rainMusic.play();
+		
+		// Set up the camera
+		camera = new OrthographicCamera();
+		camera.setToOrtho(false, 800, 480);
+		
+		// Initialize the sprite batch
+		batch = new SpriteBatch();
+		
+		// Set up the player's bucket
+		bucket = new Rectangle();
+		bucket.x = camera.viewportWidth/2 - bucketImage.getWidth()/2;
+		bucket.y = 20;
+		bucket.width = bucketImage.getWidth();
+		bucket.height = bucketImage.getHeight();
+		
+		// Set up raindrops
+		raindrops = new Array<Droplet>();
+		spawnRaindrop();
+		
+		font = new BitmapFont();
+		font.setColor(Color.WHITE);
+	}
+
+	@Override
+	public void dispose() {
+		dropImage.dispose();
+		bucketImage.dispose();
+		dropSound.dispose();
+		rainMusic.dispose();
+		batch.dispose();
+	}
+
+	private void spawnRaindrop() {
+		raindrops.add(new Droplet());
+		
+		lastDropTime = TimeUtils.nanoTime();
+	}
+
+	@Override
+	public void render() {
+		// Fill the background
+		Gdx.gl.glClearColor(0, 0, 0.2f, 1);
+		Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
+		
+		// Update the camera matrix
+		camera.update();
+		
+		// Update the bucket position
+		// Touch/click
+		if (Gdx.input.isTouched()) {
+			touchPos = new Vector3();
+			touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
+			camera.unproject(touchPos);
+			bucket.x = touchPos.x - bucket.width/2;
+		}
+		// Keyboard
+		int moveSpeed = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) ? MOVE_SPEED*2 : MOVE_SPEED;
+		if (Gdx.input.isKeyPressed(Keys.LEFT))
+			bucket.x -= moveSpeed*Gdx.graphics.getDeltaTime();
+		if (Gdx.input.isKeyPressed(Keys.RIGHT))
+			bucket.x += moveSpeed*Gdx.graphics.getDeltaTime();
+		
+		// Keep the bucket in bounds
+		bucket.x = MathUtils.clamp(bucket.x, 0, camera.viewportWidth - bucket.width);
+		
+		// Update raindrops
+		if (TimeUtils.nanoTime() - lastDropTime > 100000000) spawnRaindrop();
+		
+		Iterator<Droplet> iter = raindrops.iterator();
+		while (iter.hasNext()) {
+			Droplet raindrop = iter.next();
+			raindrop.update(MathUtils.cosDeg((TimeUtils.millis()%1000)/1000f*360f));
+			if (raindrop.rect.y + raindrop.rect.width < 0) iter.remove();
+			
+			if (raindrop.rect.overlaps(bucket)) {
+				dropSound.play();
+				iter.remove();
+			}
+		}
+		
+		// Draw everything
+		batch.setProjectionMatrix(camera.combined);
+		batch.begin();
+		
+			batch.draw(bucketImage, bucket.x, bucket.y);
+			
+			for (Droplet raindrop : raindrops)
+				batch.draw(dropImage, raindrop.rect.x, raindrop.rect.y);
+			
+			font.draw(batch, "Droplets collected: " + dropsCollected, 10, 10)
+			
+		batch.end();
+	}
+
+	@Override
+	public void resize(int width, int height) {
+	}
+
+	@Override
+	public void pause() {
+	}
+
+	@Override
+	public void resume() {
+	}
+}

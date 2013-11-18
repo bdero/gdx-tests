@@ -1,0 +1,45 @@
+package com.cheesekeg.drop;
+
+import com.badlogic.gdx.ApplicationListener;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.GL10;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
+public class Drop implements ApplicationListener {
+	Texture dropImage;
+	Texture bucketImage;
+	Sound dropSound;
+	Music rainMusic;
+	
+	@Override
+	public void create() {
+		dropImage = new Texture(Gdx.files.internal("droplet.png"));
+	}
+
+	@Override
+	public void dispose() {
+	}
+
+	@Override
+	public void render() {
+	}
+
+	@Override
+	public void resize(int width, int height) {
+	}
+
+	@Override
+	public void pause() {
+	}
+
+	@Override
+	public void resume() {
+	}
+}
